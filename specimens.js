@@ -1,4 +1,5 @@
 import { makeField, weave } from './field.js';
+import { liftInk } from './cut.js';
 
 // Small scores for the instrument, not images or precomputed brush output.
 // Every study can be erased, reversed, extended, or compared like your own ink.
@@ -37,18 +38,40 @@ export const SCORES = [
     ghosts: () => [[{ x: 520, y: 90 }, { x: 465, y: 260 }, { x: 550, y: 360 }, { x: 450, y: 490 }, { x: 490, y: 630 }]],
     gestures: () => Array.from({ length: 12 }, (_, i) => line(210, 100 + i * 44, 740, 100 + i * 44)),
   },
+  {
+    id: 'opening', title: 'A borrowed opening', subtitle: 'A cut in one weave catches the next.', palette: 'dusk', basePalette: 'graphite',
+    note: 'The diagonal opening remembers the ink lifted from it. Purple crossings feel those fragments. Try lifting another opening.',
+    ghosts: () => [],
+    gestures: () => Array.from({ length: 6 }, (_, i) => line(180, 170 + i * 70, 740, 170 + i * 70)),
+    cut: [{ x: 350, y: 180 }, { x: 650, y: 520 }],
+    after: () => Array.from({ length: 10 }, (_, i) => line(335 + i * 31, 110, 335 + i * 31, 585)),
+  },
 ];
 
-export function specimen(id = 'estuary') {
+function playScore(id) {
   const score = SCORES.find(s => s.id === id);
   if (!score) throw new Error('Unknown score.');
-  const ghosts = score.ghosts().map(points => ({ points }));
+  let ghosts = score.ghosts().map(points => ({ points }));
   const field = makeField(ghosts);
-  const strokes = score.gestures().map((points, i) => weave({
-    points, seed: 103 + i * 79, width: 3.5, palette: score.palette,
+  let strokes = score.gestures().map((points, i) => weave({
+    points, seed: 103 + i * 79, width: 3.5, palette: score.basePalette || score.palette,
   }, field, 1.15));
-  return { version: 1, strokes, ghosts };
+  const stages = [];
+  if (score.cut) {
+    stages.push({ title: 'Make a weave', description: 'Six gestures. A sheet with no memory.', study: { version: 1, strokes, ghosts } });
+    const lifted = liftInk({ strokes }, ...score.cut, 32);
+    strokes = lifted.strokes;
+    ghosts = [...ghosts, { points: lifted.paths[0], paths: lifted.paths }];
+    stages.push({ title: 'Lift an opening', description: 'The missing graphite becomes a current.', study: { version: 1, strokes, ghosts } });
+    const nextField = makeField(ghosts);
+    strokes = [...strokes, ...score.after().map((points, i) => weave({ points, seed: 819 + i * 79, width: 4, palette: score.palette }, nextField, 1.35))];
+    stages.push({ title: 'Cross the absence', description: 'Ten violet gestures feel the missing threads.', study: { version: 1, strokes, ghosts } });
+  }
+  return { study: { version: 1, strokes, ghosts }, stages };
 }
+
+export const specimen = (id = 'estuary') => playScore(id).study;
+export const processStudy = (id = 'opening') => playScore(id).stages;
 
 // A counterfactual measure, used for exploration rather than as an art score.
 export function displacement(doc) {

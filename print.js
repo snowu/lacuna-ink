@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, PALETTES, validateDocument } from './field.js';
+import { WIDTH, HEIGHT, PALETTES, validateDocument, memoryPaths } from './field.js';
 
 const coord = n => Number(n.toFixed(2));
 const points = path => path.map(p => `${coord(p.x)},${coord(p.y)}`).join(' ');
@@ -6,8 +6,8 @@ export function studySVG(doc, { plain = false, currents = false } = {}) {
   validateDocument(doc);
   const ink = doc.strokes.map(s => (plain ? s.plain : s.lines).map(l =>
     `<polyline points="${points(l.points)}" stroke="${PALETTES[s.palette][l.color]}" opacity="${coord(l.opacity)}"/>`).join('')).join('');
-  const ghosts = currents ? doc.ghosts.map((g, i) =>
-    `<polyline points="${points(g.points)}" opacity="${coord(.5 * .72 ** (doc.ghosts.length - i - 1))}"/>`).join('') : '';
+  const ghosts = currents ? doc.ghosts.map((g, i) => memoryPaths(g).map(path =>
+    `<polyline points="${points(path)}" opacity="${coord(.5 * .72 ** (doc.ghosts.length - i - 1))}"/>`).join('')).join('') : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${plain ? 'The same gestures without memory' : 'Ink shaped by erased gestures'}"><rect width="${WIDTH}" height="${HEIGHT}" fill="#faf8ef"/><g fill="none" stroke-width=".85" stroke-linecap="round" stroke-linejoin="round">${ink}</g><g class="currents" fill="none" stroke="#ae5639" stroke-width="1.2" stroke-dasharray="3 6">${ghosts}</g></svg>`;
 }
 

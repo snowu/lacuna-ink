@@ -6,6 +6,7 @@ export const PALETTES = {
   graphite: ['#343e38', '#596459', '#8c8f77', '#ac7958'],
 };
 export const LIMITS = { strokes: 100, ghosts: 40, points: 700 };
+export const memoryPaths = ghost => ghost.paths || [ghost.points];
 
 export function random(seed) {
   return () => {
@@ -38,7 +39,13 @@ export function resample(points, spacing = 12) {
 function boundedSamples(points, spacing, maxSamples) {
   let length = 0;
   for (let i = 1; i < points.length; i++) length += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
-  return resample(points, Math.max(spacing, length / (maxSamples - 1))).slice(0, maxSamples);
+  const samples = resample(points, Math.max(spacing, length / (maxSamples - 1))).slice(0, maxSamples);
+  const end = points.at(-1);
+  if (end && Math.hypot(samples.at(-1).x - end.x, samples.at(-1).y - end.y) > 1e-8) {
+    if (samples.length >= maxSamples) samples[samples.length - 1] = { ...end };
+    else samples.push({ ...end });
+  }
+  return samples;
 }
 
 // Keep the shape, rather than every integration step. The error budget is
@@ -63,16 +70,18 @@ export function simplifyPath(points, tolerance = .18) {
 export function makeField(ghosts, reach = 90) {
   const cols = 84, rows = 60;
   const data = new Float32Array(cols * rows * 2);
-  const sources = ghosts.map((g, i) => ({
-    points: boundedSamples(g.points, 14, 200), weight: .72 ** (ghosts.length - i - 1),
-  }));
+  const sources = ghosts.map((g, i) => {
+    const all = memoryPaths(g);
+    const paths = all.length > 80 ? Array.from({ length: 80 }, (_, n) => all[Math.floor(n * all.length / 80)]) : all;
+    return { paths: paths.map(p => boundedSamples(p, 14, Math.max(2, Math.floor(200 / paths.length)))), weight: .72 ** (ghosts.length - i - 1) };
+  });
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
     const x = col / (cols - 1) * WIDTH, y = row / (rows - 1) * HEIGHT;
     let vx = 0, vy = 0;
     for (const source of sources) {
       let best = reach * reach * 6, nearest = null;
-      for (let i = 1; i < source.points.length; i++) {
-        const a = source.points[i - 1], b = source.points[i];
+      for (const path of source.paths) for (let i = 1; i < path.length; i++) {
+        const a = path[i - 1], b = path[i];
         const dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
         if (!d2) continue;
         const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / d2));
@@ -159,12 +168,17 @@ export function validateDocument(doc) {
   for (const s of [...doc.strokes, ...doc.ghosts]) {
     if (!Array.isArray(s.points) || !s.points.length || s.points.length > LIMITS.points || !s.points.every(point)) throw new Error('Invalid gesture data.');
   }
+  for (const g of doc.ghosts) if (g.paths !== undefined) {
+    if (!Array.isArray(g.paths) || !g.paths.length || g.paths.length > 5000 || !g.paths.every(p => Array.isArray(p) && p.length >= 2 && p.length <= LIMITS.points && p.every(point))) throw new Error('Invalid lifted memory.');
+  }
   for (const s of doc.strokes) {
+    if (s.lifted !== undefined && typeof s.lifted !== 'boolean') throw new Error('Invalid lifted ink.');
     if (!Number.isInteger(s.seed) || !Number.isFinite(s.width) || s.width < 1 || s.width > 24 || !PALETTES[s.palette]) throw new Error('Invalid ink data.');
+    if (!Array.isArray(s.lines) || !Array.isArray(s.plain) || s.lines.length !== s.plain.length) throw new Error('The paired threads do not match.');
     for (const name of ['lines', 'plain']) {
       if (!Array.isArray(s[name]) || s[name].length > 5000) throw new Error('Invalid threads.');
       for (const l of s[name]) {
-        if (!Array.isArray(l.points) || l.points.length > 60 || !l.points.length || !l.points.every(point)
+        if (!Array.isArray(l.points) || l.points.length > LIMITS.points || !l.points.length || !l.points.every(point)
           || !Number.isInteger(l.color) || l.color < 0 || l.color > 3 || !Number.isFinite(l.opacity) || l.opacity < 0 || l.opacity > 1) throw new Error('Invalid thread data.');
       }
     }

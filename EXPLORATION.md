@@ -35,3 +35,15 @@ An intentionally long zigzag also revealed that brush offsets could place a seed
 Sound and automatic animation would make a different instrument. The pleasure here is watching a static mark carry the consequence of a removed one. The blank sheet, quiet ink, direction of a gesture, and comparison are enough to explore for a while.
 
 All work after the request to stay local is kept locally. No further pushes or online setup were needed. The current instrument and atlas can be served or opened from the personal folder.
+
+## Cutting an opening
+
+Continuing the exploration suggested a more tactile removal: lifting just the threads beneath a brush. Whole-gesture erasure remains useful, but it makes the shape of an absence a fairly large decision. A small cut lets you sculpt that absence.
+
+The lifting brush clips line segments against a swept capsule, so fast hand movements do not leave holes in the cut. Remaining ink stays exactly where it was. Each removed fragment becomes part of one disconnected memory when the hand lifts. The field samples those paths separately; joining their endpoints would introduce a fictional current through space that was never erased.
+
+The control image needs a corresponding cut. Each removed interval is mapped by its fractional arc length onto the same thread without memory. Comparing the two realities therefore compares equivalent surviving thread intervals, rather than an erased image against an intact one.
+
+**A borrowed opening** plays the new operation as a score. Six graphite gestures form a weave. A diagonal opening is lifted from it. Ten violet gestures cross the opening and bend under the influence of the removed graphite. The gap becomes useful material for a second drawing.
+
+Releasing a partly cut mark remembers only its surviving threads, rather than bringing its already-removed centerline back a second time. Very short fragments also retain both endpoints so they can exert a direction. These small details matter to the rule that only actual absence should act.

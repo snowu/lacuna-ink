@@ -1,6 +1,7 @@
-import { WIDTH, HEIGHT, PALETTES, LIMITS, random, resample, makeField, weave, distanceToPath, validateDocument } from './field.js';
+import { WIDTH, HEIGHT, PALETTES, LIMITS, random, resample, makeField, weave, distanceToPath, validateDocument, memoryPaths } from './field.js';
 import { SCORES, specimen } from './specimens.js';
 import { pairedPrint } from './print.js';
+import { liftInk, strokeMemory } from './cut.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d');
@@ -74,7 +75,7 @@ function drawGhosts(target) {
   doc.ghosts.forEach((g, index) => {
     target.globalAlpha = .5 * .72 ** (doc.ghosts.length - index - 1);
     target.beginPath();
-    g.points.forEach((p, i) => i ? target.lineTo(p.x, p.y) : target.moveTo(p.x, p.y));
+    memoryPaths(g).forEach(path => path.forEach((p, i) => i ? target.lineTo(p.x, p.y) : target.moveTo(p.x, p.y)));
     target.stroke();
   });
   target.setLineDash([]); target.strokeStyle = '#718773'; target.lineWidth = .7;
@@ -115,8 +116,10 @@ function chooseTool(next) {
   $('erase').classList.toggle('selected', tool === 'erase');
   $('ink').setAttribute('aria-pressed', tool === 'ink');
   $('erase').setAttribute('aria-pressed', tool === 'erase');
-  $('paper').classList.toggle('erasing', tool === 'erase');
-  $('tool-description').textContent = tool === 'ink' ? 'Drag slowly. A little ink goes a long way.' : 'Brush across a mark. The whole gesture becomes a current.';
+  $('lift').classList.toggle('selected', tool === 'lift');
+  $('lift').setAttribute('aria-pressed', tool === 'lift');
+  $('paper').classList.toggle('erasing', tool !== 'ink');
+  $('tool-description').textContent = tool === 'ink' ? 'Drag slowly. A little ink goes a long way.' : tool === 'lift' ? 'Lift only the ink beneath your brush. Its missing fragments become a current.' : 'Brush across a mark. The whole gesture becomes a current.';
   $('cursor').style.display = 'none';
 }
 function position(e) {
@@ -132,8 +135,17 @@ function eraseAt(a, b = a) {
   if (!removed.length) return;
   if (!eraseSnapshot) { snapshot(); eraseSnapshot = true; }
   doc.strokes = doc.strokes.filter(s => !removed.includes(s));
-  doc.ghosts = [...doc.ghosts, ...removed.map(s => ({ points: s.points }))].slice(-LIMITS.ghosts);
+  doc.ghosts = [...doc.ghosts, ...removed.map(strokeMemory)].slice(-LIMITS.ghosts);
   changed({ currents: true });
+}
+function liftAt(a, b = a) {
+  const result = liftInk(doc, a, b);
+  if (!result.changed) return;
+  if (result.strokes.some(s => s.lines.length > 5000)) { toast('This ink is finely fragmented. Release a whole mark to make room.'); return; }
+  if (!eraseSnapshot) { snapshot(); eraseSnapshot = true; }
+  doc.strokes = result.strokes;
+  active.liftPaths = [...(active.liftPaths || []), ...result.paths];
+  changed();
 }
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0 || active) return;
@@ -147,19 +159,21 @@ canvas.addEventListener('pointerdown', e => {
     strength: Number($('strength').value) / 100, tool, pointer: e.pointerId };
   eraseSnapshot = false;
   if (tool === 'erase') eraseAt(p);
+  if (tool === 'lift') liftAt(p);
   $('empty-note').hidden = true; dirty = true;
 });
 canvas.addEventListener('pointermove', e => {
   const box = canvas.getBoundingClientRect();
-  if (tool === 'erase' && !compare) {
+  if (tool !== 'ink' && !compare) {
     $('cursor').style.display = 'block';
     $('cursor').style.left = `${e.clientX - box.left}px`;
     $('cursor').style.top = `${e.clientY - box.top}px`;
-    $('cursor').style.width = $('cursor').style.height = `${30 / WIDTH * box.width}px`;
+    $('cursor').style.width = $('cursor').style.height = `${(tool === 'lift' ? 44 : 30) / WIDTH * box.width}px`;
   }
   if (!active || active.pointer !== e.pointerId) return;
   const p = position(e), last = active.points.at(-1);
   if (active.tool === 'erase') { eraseAt(last, p); active.points = [p]; }
+  else if (active.tool === 'lift') { liftAt(last, p); active.points = [p]; }
   else if (Math.hypot(p.x - last.x, p.y - last.y) >= 3) {
     if (active.points.length >= LIMITS.points) { finish(); toast('A long gesture! Lift your hand, then begin another.'); return; }
     active.points.push(p);
@@ -172,6 +186,12 @@ function finish() {
     snapshot();
     const { tool: ignoredTool, pointer: ignoredPointer, strength, ...stroke } = active;
     doc.strokes = [...doc.strokes, weave(stroke, field, strength)];
+  }
+  if (active.tool === 'lift' && active.liftPaths?.length) {
+    const paths = active.liftPaths;
+    const sampled = paths.length > 5000 ? Array.from({ length: 5000 }, (_, i) => paths[Math.floor(i * paths.length / 5000)]) : paths;
+    doc.ghosts = [...doc.ghosts, { points: sampled[0], paths: sampled }].slice(-LIMITS.ghosts);
+    rebuild();
   }
   const pointer = active.pointer;
   active = null;
@@ -186,6 +206,7 @@ window.addEventListener('blur', finish);
 
 $('ink').onclick = () => chooseTool('ink');
 $('erase').onclick = () => chooseTool('erase');
+$('lift').onclick = () => chooseTool('lift');
 $('width').oninput = () => $('width-value').textContent = $('width').value;
 $('strength').oninput = () => $('strength-value').textContent = `${$('strength').value}%`;
 document.querySelectorAll('[data-palette]').forEach(button => button.onclick = () => {
@@ -215,7 +236,7 @@ $('undo').onclick = undo;
 $('release').onclick = () => {
   finish(); if (!doc.strokes.length) return;
   snapshot();
-  doc.ghosts = [...doc.ghosts, ...doc.strokes.map(s => ({ points: s.points }))].slice(-LIMITS.ghosts);
+  doc.ghosts = [...doc.ghosts, ...doc.strokes.map(strokeMemory)].slice(-LIMITS.ghosts);
   doc.strokes = []; changed({ currents: true });
   if (compare) $('compare').click();
   chooseTool('ink'); toast('The ink is gone. Its currents remain. Draw through them.');
@@ -239,7 +260,7 @@ $('reverse').onclick = () => {
   finish(); if (!doc.ghosts.length) return;
   snapshot();
   const last = doc.ghosts.at(-1);
-  doc.ghosts = [...doc.ghosts.slice(0, -1), { points: [...last.points].reverse() }];
+  doc.ghosts = [...doc.ghosts.slice(0, -1), { ...last, points: [...last.points].reverse(), ...(last.paths ? { paths: last.paths.map(p => [...p].reverse()) } : {}) }];
   changed({ currents: true });
   if (!reveal) $('ghosts').click();
   toast('The last current runs backwards. Your next ink will feel it.');
@@ -306,6 +327,7 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) return;
   if (key === 'b') chooseTool('ink');
   if (key === 'e') chooseTool('erase');
+  if (key === 'l') chooseTool('lift');
   if (key === 'g') $('ghosts').click();
   if (key === 'c') $('compare').click();
 });

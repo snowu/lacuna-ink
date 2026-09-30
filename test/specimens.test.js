@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SCORES, specimen, displacement } from '../specimens.js';
+import { SCORES, specimen, displacement, processStudy } from '../specimens.js';
 import { validateDocument, makeField, weave } from '../field.js';
 
 for (const score of SCORES) {
@@ -24,4 +24,14 @@ test('reversing and forgetting a memory affect future ink without rewriting a st
   assert.notDeepEqual(remembered.lines, reversed.lines);
   assert.deepEqual(forgotten.lines, forgotten.plain);
   assert.equal(JSON.stringify(doc.strokes), before);
+});
+
+test('the opening process retains three genuine intermediate states', () => {
+  const stages = processStudy();
+  stages.forEach(s => validateDocument(s.study));
+  assert.deepEqual(stages.map(s => s.study.strokes.length), [6, 6, 16]);
+  assert.deepEqual(stages.map(s => s.study.ghosts.length), [0, 1, 1]);
+  assert.notDeepEqual(stages[0].study.strokes, stages[1].study.strokes);
+  assert.deepEqual(stages[1].study.strokes, stages[2].study.strokes.slice(0, 6));
+  assert.deepEqual(stages[2].study, specimen('opening'));
 });

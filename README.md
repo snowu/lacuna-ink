@@ -18,6 +18,7 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 
 - **Ink** / `B`: drag to draw fine pigment threads. A tap makes a short plume.
 - **Let go** / `E`: brush across a mark to remove the whole gesture and leave a current.
+- **Lift a little ink** / `L`: cut only the threads beneath the brush, leaving the rest in place. When you lift your hand, the removed fragments become one current. The corresponding portions are also removed from the comparison view.
 - **Release all ink**: turn all visible gestures into memory at once.
 - **Reveal the currents** / `G`: see the erased contours and the field they created.
 - **Without memory** / `C`: compare your actual gestures with their unbent counterparts.
@@ -30,7 +31,7 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 
 Start with **Try an example**, then switch **Without memory** on and off. The example uses two absent curves and seven gestures; it goes through the same field and brush engine as your drawing. Undo returns to your previous sheet.
 
-The cabinet below the instrument offers three editable studies: an absent tide, a moon with opposing circular memories, and a crooked fault through straight gestures. These are small scores played through the ordinary brush engine. You can change their memories and keep drawing.
+The cabinet below the instrument offers four editable studies: an absent tide, a moon with opposing circular memories, a crooked fault through straight gestures, and a borrowed opening cut in one weave that catches the next. These are small scores played through the ordinary brush and lifting engines. You can change their memories and keep drawing.
 
 Your latest sheet is saved in browser storage when available. The app reports when storage is full or unavailable; Save study still works. The brush is bounded to 550 seeds per gesture, sheets to 100 visible gestures and 40 memories. Imported studies have a 24 MB limit.
 
@@ -51,12 +52,13 @@ These precedents establish that flow-field art, erasure and visual memory are ex
 - `field.js`: deterministic sampling, cached vector field, paired brush trajectories, study validation.
 - `app.js`: pointer interaction, stroke erasure, reversible actions, persistence, export and import.
 - `style.css` / `index.html`: responsive paper, pigment controls and a short introduction.
-- `specimens.js`: three editable scores, plus a measurement of how their erased gestures changed their ink.
+- `specimens.js`: four editable scores, plus a measurement of how their erased gestures changed their ink.
+- `cut.js`: exact cuts through swept circular brushes, paired arc-length clipping, and memories made from the remaining ink.
 - `print.js`: validated SVG and standalone paired HTML prints.
 - `tools/make-atlas.js`: an offline atlas of SVGs, paired prints and portable studies.
 - `test/`: causal checks for absence, direction, zero pull, reproducibility, geometry limits, compact ink, study round trips and offline prints.
 
-Each memory contributes the tangent of its nearest segment, plus a gentle attraction toward the contour, weighted by Gaussian distance. Older memories have weight `0.72 ^ age`. The resulting 84 × 60 field is sampled bilinearly. Fine threads integrate that force together with their initial velocity. The plain version integrates the same threads with a zero field.
+Each memory contributes the tangent of its nearest segment, plus a gentle attraction toward the contour, weighted by Gaussian distance. A lifted memory contains disconnected paths, which are never joined into an imaginary contour. Older memories have weight `0.72 ^ age`. The resulting 84 × 60 field is sampled bilinearly. Fine threads integrate that force together with their initial velocity. The plain version integrates the same threads with a zero field. Cuts map to corresponding arc-length intervals in that plain version, keeping the paired comparison consistent.
 
 ```sh
 npm test
@@ -69,6 +71,8 @@ npm run atlas
 ```
 
 Open `.local/atlas/index.html`. Its SVGs, JSON studies and paired prints work without the server or internet. Generated artifacts stay outside version control.
+
+The atlas also contains `opening-process.html`: three actual intermediate drawings showing the weave, the cut, and the violet ink shaped by that cut.
 
 Browser checks use Playwright as a development dependency, with system Chromium by default. Start the local server first, then run:
 
