@@ -4,6 +4,8 @@
 
 Make a curve. Let it go. Draw through the absence.
 
+**[Open the instrument →](https://snowu.github.io/lacuna-ink/)**
+
 Lacuna is a small experiment in giving removal a consequence. Visible marks do not influence anything. When you erase a gesture, its path and direction become an invisible vector field. Later ink follows that field. New memories gradually soften older ones.
 
 ## Play
