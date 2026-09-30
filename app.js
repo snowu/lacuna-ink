@@ -3,6 +3,7 @@ import { SCORES, specimen } from './specimens.js';
 import { pairedPrint } from './print.js';
 import { liftInk, strokeMemory } from './cut.js';
 import { Listener } from './sound.js';
+import { replyTo } from './reply.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d');
@@ -66,6 +67,8 @@ function changed({ currents = false } = {}) {
   if (currents) rebuild();
   layerDirty = dirty = true;
   $('undo').disabled = history.length === 0;
+  $('reply').disabled = !doc.ghosts.length || doc.strokes.length >= LIMITS.strokes;
+  $('reply-note').textContent = !doc.ghosts.length ? 'Let a mark go first. Its absence gives the reply somewhere to begin.' : doc.strokes.length >= LIMITS.strokes ? 'The sheet is full. Let some ink go to make room for a reply.' : 'Five gestures at a time. Your pigment and memory pull. Undo takes the whole reply back.';
   $('release').disabled = doc.strokes.length === 0;
   $('reverse').disabled = $('forget').disabled = doc.ghosts.length === 0;
   $('memory-note').textContent = doc.ghosts.length ? 'Change a current. Only the next ink will know.' : 'The paper has no past yet.';
@@ -308,6 +311,14 @@ function openScore(id) {
   changed({ currents: true }); toast(score.note);
 }
 $('example').onclick = () => openScore('estuary');
+$('reply').onclick = () => {
+  finish();
+  const strokes = replyTo(doc, { palette, width: Number($('width').value), strength: Number($('strength').value) / 100 });
+  if (!strokes.length) return;
+  snapshot(); doc.strokes = [...doc.strokes, ...strokes]; normalView(); changed();
+  toast('A reply from the paper’s memory. Keep it, undo it, or let it become another current.');
+  $('paper').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' });
+};
 $('reverse').onclick = () => {
   finish(); if (!doc.ghosts.length) return;
   snapshot();
@@ -383,6 +394,7 @@ document.addEventListener('keydown', e => {
   if (key === 'g') $('ghosts').click();
   if (key === 'c') $('compare').click();
   if (key === 's') $('listen').click();
+  if (key === 'r') $('reply').click();
   if (listening && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
     e.preventDefault(); const p = probe || { x: WIDTH / 2, y: HEIGHT / 2 };
     listenAt({ x: Math.max(0, Math.min(WIDTH, p.x + (e.key === 'ArrowLeft' ? -20 : e.key === 'ArrowRight' ? 20 : 0))), y: Math.max(0, Math.min(HEIGHT, p.y + (e.key === 'ArrowUp' ? -20 : e.key === 'ArrowDown' ? 20 : 0))) });

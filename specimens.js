@@ -39,6 +39,40 @@ export const SCORES = [
     gestures: () => Array.from({ length: 12 }, (_, i) => line(210, 100 + i * 44, 740, 100 + i * 44)),
   },
   {
+    id: 'letter', title: 'A letter without an ending', subtitle: 'An unfinished spiral holds the unsaid.', palette: 'graphite',
+    note: 'I wanted a letter that opens instead of closing. The spiral is gone; the crossings still hesitate around it. Add your own ending, or ask for a reply.',
+    ghosts: () => [Array.from({length:180},(_,i)=>{
+      const u=i/179,a=-.5+u*Math.PI*3.8,r=230-u*190;
+      return {x:500+Math.cos(a)*r,y:350+Math.sin(a)*r*.8};
+    })],
+    gestures: () => Array.from({length:14},(_,i)=>line(235,165+i*27,690,185+i*27,40)),
+  },
+  {
+    id: 'orchard', title: 'An orchard of almosts', subtitle: 'Lost branches. A canopy finding its way.', palette: 'estuary',
+    note: 'I erased a tree before giving it leaves. Their threads follow the branches that remain only as memory. Change a branch and see what the next growth does.',
+    ghosts: () => [
+      [{x:480,y:580},{x:490,y:440},{x:450,y:340},{x:340,y:250},{x:260,y:170}],
+      [{x:480,y:580},{x:500,y:420},{x:520,y:300},{x:510,y:180},{x:470,y:105}],
+      [{x:480,y:580},{x:510,y:440},{x:590,y:330},{x:700,y:240},{x:780,y:160}],
+    ],
+    gestures: () => [
+      ...Array.from({length:18},(_,i)=>line(265+i*28,170+Math.sin(i/17*Math.PI)*60,265+i*28,330+Math.sin(i/17*Math.PI)*95,24)),
+      ...Array.from({length:5},(_,i)=>line(420+i*26,430,420+i*26,580,24)),
+    ],
+  },
+  {
+    id: 'room', title: 'The room I left open', subtitle: 'Missing walls. A doorway full of light.', palette: 'dusk',
+    note: 'I drew a room, then removed its walls. The light keeps their shape. Leave a memory of your own, then let the paper answer.',
+    ghosts: () => [
+      [{x:265,y:550},{x:265,y:155},{x:740,y:155},{x:740,y:550}],
+      [{x:740,y:550},{x:580,y:550},{x:580,y:400},{x:500,y:365},{x:420,y:400},{x:420,y:550},{x:265,y:550}],
+    ],
+    gestures: () => [
+      ...Array.from({length:11},(_,i)=>line(330+i*31,240,330+i*31,500,35)),
+      ...Array.from({length:6},(_,i)=>line(310,220+i*51,665,280+i*42,40)),
+    ],
+  },
+  {
     id: 'opening', title: 'A borrowed opening', subtitle: 'A cut in one weave catches the next.', palette: 'dusk', basePalette: 'graphite',
     note: 'The diagonal opening remembers the ink lifted from it. Purple crossings feel those fragments. Try lifting another opening.',
     ghosts: () => [],

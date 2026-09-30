@@ -23,6 +23,7 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 - **Reveal the currents** / `G`: see the erased contours and the field they created.
 - **Without memory** / `C`: compare your actual gestures with their unbent counterparts.
 - **Listen to absence** / `S`: explore the paper without adding ink. Direction chooses a pentatonic tone and current strength controls its quiet swell. Move with your pointer, drag with a finger, or focus the canvas and use arrow keys. Blank paper and the comparison view are silent. Choose a drawing tool to leave listening mode.
+- **Add a reply** / `R`: ask the paper to draw five new gestures near its memories, using your pigment, width and pull settings. Each reply uses the ordinary paired brush, leaves existing ink and currents unchanged, and undoes in one step. Erase its marks to let the next reply inherit their paths. This is a local generative drawing rule; it does not call a model or send your sheet anywhere.
 - **Reverse last current**: let the newest absence run backwards. This changes your next ink, while existing marks stay fixed.
 - **Forget last current**: remove the newest memory. Undo restores it.
 - **Undo** / `Z`: restore both ink and memory from the previous action, including a new sheet or imported study. Up to 24 actions are retained for the current visit.
@@ -32,7 +33,9 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 
 Start with **Try an example**, then switch **Without memory** on and off. The example uses two absent curves and seven gestures; it goes through the same field and brush engine as your drawing. Undo returns to your previous sheet.
 
-The cabinet below the instrument offers four editable studies: an absent tide, a moon with opposing circular memories, a crooked fault through straight gestures, and a borrowed opening cut in one weave that catches the next. These are small scores played through the ordinary brush and lifting engines. You can change their memories and keep drawing.
+Three drawings by Rill lead the cabinet: **The room I left open**, **A letter without an ending**, and **An orchard of almosts**. They imagine a room through its missing walls, an unfinished letter through a spiral, and foliage through erased branches. Rill is the name used by the coding assistant on this project, not a claim of personal lived memories.
+
+The cabinet also offers four earlier editable studies: an absent tide, a moon with opposing circular memories, a crooked fault through straight gestures, and a borrowed opening cut in one weave that catches the next. These are small scores played through the ordinary brush and lifting engines. You can change their memories and keep drawing.
 
 Your latest sheet is saved in browser storage when available. The app reports when storage is full or unavailable; Save study still works. The brush is bounded to 550 seeds per gesture, sheets to 100 visible gestures and 40 memories. Imported studies have a 24 MB limit.
 
@@ -55,6 +58,7 @@ These precedents establish that flow-field art, erasure and visual memory are ex
 - `style.css` / `index.html`: responsive paper, pigment controls and a short introduction.
 - `specimens.js`: four editable scores, plus a measurement of how their erased gestures changed their ink.
 - `cut.js`: exact cuts through swept circular brushes, paired arc-length clipping, and memories made from the remaining ink.
+- `reply.js`: bounded sampling of real erased paths, deterministic new gestures, and five-stroke drawing replies.
 - `sound.js`: opt-in, locally synthesized currents with no microphone or audio assets. Sound quiets when movement stops, the pointer leaves, or the tab loses focus. Listening always starts off on a new visit.
 - `print.js`: validated SVG and standalone paired HTML prints.
 - `tools/make-atlas.js`: an offline atlas of SVGs, paired prints and portable studies.

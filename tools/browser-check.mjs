@@ -8,13 +8,36 @@ const page = await browser.newPage({ viewport:{width:1440,height:1150},acceptDow
 const errors=[]; page.on('pageerror',e=>errors.push(e.message));
 const baseURL=process.argv[2] || 'http://127.0.0.1:8317/';
 await page.goto(baseURL);
-for(const file of ['index.html','style.css','app.js','field.js','cut.js','sound.js','specimens.js','print.js']){
+for(const file of ['index.html','style.css','app.js','field.js','cut.js','sound.js','specimens.js','print.js','reply.js']){
   const response=await page.request.get(new URL(file,baseURL).href);
   assert.equal(response.status(),200,`${file} is served`);
   const expected=await readFile(new URL(`../${file}`,import.meta.url));
   const hash=data=>createHash('sha256').update(data).digest('hex');
   assert.equal(hash(await response.body()),hash(expected),`${file} matches the current checkout`);
 }
+assert.equal(await page.locator('#reply').isDisabled(),true);
+await page.locator('[data-score=room]').click();
+await page.waitForTimeout(500);
+const roomBefore=await page.evaluate(()=>JSON.parse(localStorage.getItem('lacuna.study.v1')));
+assert.equal(roomBefore.strokes.length,17);
+await page.locator('#reply').click();
+assert.equal(await page.locator('#counts').textContent(),'22 marks · 2 memories');
+await page.waitForTimeout(500);
+const roomAfter=await page.evaluate(()=>JSON.parse(localStorage.getItem('lacuna.study.v1')));
+assert.deepEqual(roomAfter.ghosts,roomBefore.ghosts);
+assert.deepEqual(roomAfter.strokes.slice(0,17),roomBefore.strokes);
+await page.screenshot({path:'/tmp/lacuna-correspondence.png',fullPage:true});
+await page.locator('#undo').click();
+await page.waitForTimeout(500);
+assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('lacuna.study.v1'))),roomBefore);
+for(const id of ['letter','orchard']){
+  await page.locator(`[data-score=${id}]`).click();
+  await page.locator('#canvas').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  await page.screenshot({path:`/tmp/lacuna-${id}.png`,fullPage:true});
+}
+await page.locator('#new').click();
+assert.equal(await page.locator('#reply').isDisabled(),true);
 await page.locator('#example').click();
 await page.waitForTimeout(600);
 await page.screenshot({path:'/tmp/lacuna-desktop.png',fullPage:true});
@@ -190,8 +213,24 @@ await mobile.waitForFunction(()=>document.getElementById('listen').getAttribute(
 await mobile.locator('#canvas').scrollIntoViewIfNeeded();
 const probeBox=await mobile.locator('#canvas').boundingBox();
 await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:probeBox.x+probeBox.width*.4,y:probeBox.y+probeBox.height*.45}]});
+// Give the listening drag a real duration; an instantaneous drag suppresses
+// the next tap in Chromium's gesture recognizer.
+await mobile.waitForTimeout(100);
 await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:probeBox.x+probeBox.width*.6,y:probeBox.y+probeBox.height*.45}]});
+await mobile.waitForTimeout(100);
 await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+assert.equal(await mobile.locator('#counts').textContent(),'0 marks · 1 memory');
+// End the synthetic touch gesture before a separate button tap.
+await mobile.waitForTimeout(400);
+await mobile.locator('#reply').scrollIntoViewIfNeeded();
+await mobile.waitForTimeout(400);
+await mobile.locator('#reply').tap();
+await mobile.waitForFunction(()=>document.getElementById('counts').textContent==='5 marks · 1 memory',{},{timeout:3000});
+assert.equal(await mobile.locator('#counts').textContent(),'5 marks · 1 memory');
+assert.equal(await mobile.locator('#listen').getAttribute('aria-pressed'),'false');
+await mobile.waitForTimeout(400);
+await mobile.locator('#undo').tap();
+await mobile.waitForFunction(()=>document.getElementById('counts').textContent==='0 marks · 1 memory',{},{timeout:3000});
 assert.equal(await mobile.locator('#counts').textContent(),'0 marks · 1 memory');
 await touch.close();
 assert.deepEqual(errors,[]);
