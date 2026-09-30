@@ -1,0 +1,10 @@
+{
+  "name": "lacuna-ink",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8317 --bind 127.0.0.1",
+    "test": "node --test test/*.test.js"
+  }
+}

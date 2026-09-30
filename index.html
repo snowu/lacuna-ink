@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#efeee6">
+  <title>Lacuna — draw with what you let go</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23efeee6'/%3E%3Cpath d='M44 14C9 9 12 58 45 48' fill='none' stroke='%23315f51' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="wordmark" href="./" aria-label="Lacuna home"><span class="sigil">◌</span> lacuna<span class="wordmark-dot">.</span></a>
+    <span class="edition">AN INSTRUMENT FOR ABSENCE <span> / </span> № 001</span>
+    <button id="about" class="quiet">A small explanation <span>↗</span></button>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">NOTHING YOU REMOVE IS QUITE GONE</p><h1>Draw with what<br>you <em>let go.</em></h1></div>
+      <div class="intro-copy"><p>Make a mark. Let it go.<br>Its absence becomes a current.<br>The next mark remembers.</p><button id="example" class="text-link">Try an example <span>↗</span></button></div>
+    </section>
+    <section class="workspace" aria-label="Drawing instrument">
+      <aside class="tools">
+        <div class="tool-section"><span class="section-number">01 / YOUR HAND</span><div class="tool-buttons"><button id="ink" class="selected" aria-pressed="true"><span>╱</span> Ink <kbd>B</kbd></button><button id="erase" aria-pressed="false"><span>◌</span> Let go <kbd>E</kbd></button></div><p id="tool-description">Drag slowly. A little ink goes a long way.</p></div>
+        <div class="tool-section"><label for="width">Thread width <output id="width-value">6</output></label><input id="width" type="range" min="2" max="16" value="6"><label for="strength">Memory pull <output id="strength-value">70%</output></label><input id="strength" type="range" min="0" max="150" value="70"><p>Changes the pull on your next mark.</p></div>
+        <div class="tool-section"><span class="section-number">02 / YOUR PIGMENT</span><div id="palettes" class="palettes"><button data-palette="estuary" class="selected" aria-pressed="true"><span class="swatches"><i style="--c:#27645c"></i><i style="--c:#3f8271"></i><i style="--c:#af592e"></i></span> Estuary</button><button data-palette="dusk" aria-pressed="false"><span class="swatches"><i style="--c:#655b83"></i><i style="--c:#887d9c"></i><i style="--c:#bf725e"></i></span> Dusk</button><button data-palette="graphite" aria-pressed="false"><span class="swatches"><i style="--c:#343e38"></i><i style="--c:#596459"></i><i style="--c:#ac7958"></i></span> Graphite</button></div></div>
+        <div class="tool-section last"><span class="section-number">03 / THE UNSEEN</span><button id="ghosts" class="toggle" aria-pressed="false">Reveal the currents <span class="switch"></span></button><button id="compare" class="toggle" aria-pressed="false">Without memory <span class="switch"></span></button><p>Compare the same hand gestures on a canvas that never remembers.</p></div>
+      </aside>
+      <div class="paper-column">
+        <div class="paper-top"><span id="study-name">STUDY 001</span><span id="view-label">INK & MEMORY</span><span class="paper-coordinates">1000 × 700</span></div>
+        <div class="paper" id="paper"><canvas id="canvas" width="1000" height="700" tabindex="0" aria-label="Drawing canvas. Drag to draw; press E and drag over a mark to turn it into a current."></canvas><div id="empty-note"><span>Begin anywhere.</span><p>Draw a curve, then let it go.</p></div><div id="compare-note" hidden>THE SAME GESTURES, WITHOUT THE PAST</div><div id="cursor" aria-hidden="true"></div></div>
+        <div class="paper-bottom"><span><i class="status-dot"></i> <span id="counts">0 marks · 0 memories</span></span><span id="save-status">Saved on this device</span></div>
+        <div class="action-bar"><div><button id="undo" disabled>↶ Undo <kbd>Z</kbd></button><button id="release" disabled>◌ Release all ink</button></div><div><button id="new">New sheet</button><button id="export" class="export">Keep this image ↗</button></div></div>
+      </div>
+    </section>
+    <section class="footnote"><p><span>THE RULE OF THIS PLACE</span> Only an absent mark can move another.</p><div><button id="save-study">Save study</button><span> / </span><button id="load-study">Open study</button><input type="file" id="file" accept="application/json,.json" hidden></div></section>
+  </main>
+  <footer><span>Made for the pleasure of finding out.</span><span>No accounts. No uploads. Just your hand and its history.</span></footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="explanation"><button id="close" aria-label="Close explanation">×</button><p class="eyebrow">A SMALL EXPLANATION</p><h2>The shape of<br><em>something missing.</em></h2><p>Most drawing tools treat erasure as a return to blankness. Here, an erased gesture stays behind as an invisible current. Its direction pulls new ink along the path you removed.</p><ol><li><b>Make a mark.</b> Draw a loop or a long curve.</li><li><b>Let it go.</b> Choose “Let go” and brush across it, or release all ink.</li><li><b>Draw through the absence.</b> New threads bend toward its memory.</li></ol><p>Reveal the currents to see the hidden paths. Switch to “Without memory” to compare identical gestures with no pull. Older memories grow gentler as new ones arrive.</p><p class="small">Undo restores the last action. A new sheet forgets everything. Save a study to preserve both its ink and its memories.</p><button id="begin" class="primary">Let's find out ↗</button></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
