@@ -22,6 +22,7 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 - **Release all ink**: turn all visible gestures into memory at once.
 - **Reveal the currents** / `G`: see the erased contours and the field they created.
 - **Without memory** / `C`: compare your actual gestures with their unbent counterparts.
+- **Listen to absence** / `S`: explore the paper without adding ink. Direction chooses a pentatonic tone and current strength controls its quiet swell. Move with your pointer, drag with a finger, or focus the canvas and use arrow keys. Blank paper and the comparison view are silent. Choose a drawing tool to leave listening mode.
 - **Reverse last current**: let the newest absence run backwards. This changes your next ink, while existing marks stay fixed.
 - **Forget last current**: remove the newest memory. Undo restores it.
 - **Undo** / `Z`: restore both ink and memory from the previous action, including a new sheet or imported study. Up to 24 actions are retained for the current visit.
@@ -54,6 +55,7 @@ These precedents establish that flow-field art, erasure and visual memory are ex
 - `style.css` / `index.html`: responsive paper, pigment controls and a short introduction.
 - `specimens.js`: four editable scores, plus a measurement of how their erased gestures changed their ink.
 - `cut.js`: exact cuts through swept circular brushes, paired arc-length clipping, and memories made from the remaining ink.
+- `sound.js`: opt-in, locally synthesized currents with no microphone or audio assets. Sound quiets when movement stops, the pointer leaves, or the tab loses focus. Listening always starts off on a new visit.
 - `print.js`: validated SVG and standalone paired HTML prints.
 - `tools/make-atlas.js`: an offline atlas of SVGs, paired prints and portable studies.
 - `test/`: causal checks for absence, direction, zero pull, reproducibility, geometry limits, compact ink, study round trips and offline prints.
@@ -82,6 +84,8 @@ npm run test:browser
 ```
 
 Set `CHROMIUM_EXECUTABLE` if Chromium lives elsewhere. Playwright is not used by the drawing app.
+
+The browser check also renders an eight-second listening sample to `.local/atlas/listening-orbit.wav`: a quiet walk around the two erased circles. The check confirms that blank paper renders exact silence and that the voice stays within its intended level and fades out.
 
 Browser verification covers drawing a loop, releasing it, drawing through its memory, direct erasure, undo, page reload, paired-view differences, PNG and JSON downloads, valid and invalid imports, the explanation dialog, a 390 px mobile layout, editable specimens, reversal and forgetting, an offline paired print, and real touch input.
 

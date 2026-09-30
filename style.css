@@ -8,4 +8,5 @@
 @media(max-width:600px){.footnote{display:block}.footnote p{max-width:none;margin-bottom:12px}.footnote p span{display:inline;margin-right:10px}.footnote>div{display:flex;justify-content:space-between;font-size:9px;white-space:normal}.footnote button{min-height:36px}.footnote div>span{align-self:center}}
 .specimens{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:35px}.lift-tool{width:100%;border:1px solid var(--line);border-radius:3px;text-align:left;font-size:10px;margin-top:7px;padding:10px}.lift-tool>span{float:right;color:var(--accent)}.lift-tool.selected{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 @media(max-width:600px){.specimens{grid-template-columns:1fr}}
+.paper.listening canvas{cursor:crosshair}.paper.listening #cursor{display:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

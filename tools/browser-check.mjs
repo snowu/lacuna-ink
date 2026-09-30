@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
+import {writeFile} from 'node:fs/promises';
 await import('./make-atlas.js');
 const browser = await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
 const page = await browser.newPage({ viewport:{width:1440,height:1150},acceptDownloads:true });
@@ -100,6 +101,52 @@ assert.ok(opening.ghosts[0].paths.length>10);
 assert.ok(opening.strokes.some(s=>s.lifted));
 await page.locator('#canvas').scrollIntoViewIfNeeded();
 await page.screenshot({path:'/tmp/lacuna-opening.png',fullPage:true});
+await page.locator('#listen').click();
+await page.waitForFunction(()=>document.getElementById('listen').getAttribute('aria-pressed')==='true');
+await page.locator('#canvas').scrollIntoViewIfNeeded();
+const listeningBox=await page.locator('#canvas').boundingBox();
+await page.mouse.move(listeningBox.x+listeningBox.width/2,listeningBox.y+listeningBox.height/2);
+await page.mouse.down();
+await page.mouse.move(listeningBox.x+listeningBox.width*.65,listeningBox.y+listeningBox.height*.6,{steps:8});
+await page.mouse.up();
+await page.waitForTimeout(500);
+assert.equal(await page.locator('#counts').textContent(),'16 marks · 1 memory');
+assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('lacuna.study.v1'))),opening);
+await page.locator('#canvas').focus();await page.keyboard.press('ArrowLeft');
+assert.equal(await page.locator('#listen').getAttribute('aria-pressed'),'true');
+await page.locator('#ink').click();
+assert.equal(await page.locator('#listen').getAttribute('aria-pressed'),'false');
+// Switching tools during a delayed audio start must cancel that start.
+await page.evaluate(()=>{const Real=window.AudioContext;window.originalAudioContext=Real;window.AudioContext=class extends Real {resume(){return new Promise(resolve=>{window.completeAudioResume=()=>super.resume().then(resolve);});}};});
+await page.locator('#listen').click();
+await page.waitForFunction(()=>typeof window.completeAudioResume==='function');
+await page.locator('#ink').click();
+await page.evaluate(async()=>{await window.completeAudioResume();window.AudioContext=window.originalAudioContext;});
+await page.waitForFunction(()=>!document.getElementById('listen').disabled);
+assert.equal(await page.locator('#listen').getAttribute('aria-pressed'),'false');
+const audioCheck=await page.evaluate(async()=>{
+  const {connectVoice,toneForCurrent}=await import('./sound.js');
+  async function render(vector){const context=new OfflineAudioContext(1,22050,44100);const voice=connectVoice(context);voice.tone(toneForCurrent(vector));const data=(await context.startRendering()).getChannelData(0);let energy=0,peak=0;for(const n of data){energy+=n*n;peak=Math.max(peak,Math.abs(n));}return {rms:Math.sqrt(energy/data.length),peak};}
+  return {blank:await render({x:0,y:0}),memory:await render({x:2.5,y:0})};
+});
+assert.equal(audioCheck.blank.peak,0);
+assert.ok(audioCheck.memory.rms>.005);
+assert.ok(audioCheck.memory.peak<.08);
+const audioSamples=await page.evaluate(async()=>{
+  const {connectVoice,toneForCurrent}=await import('./sound.js');
+  const {makeField}=await import('./field.js');
+  const {specimen}=await import('./specimens.js');
+  const f=makeField(specimen('orbit').ghosts),context=new OfflineAudioContext(1,22050*8,22050),voice=connectVoice(context);
+  for(let i=0;i<=140;i++){const u=i/140,a=u*3*Math.PI,r=330-230*Math.sin(u*Math.PI);voice.tone(toneForCurrent(f(500+Math.cos(a)*r,350+Math.sin(a)*r)),.4+i*.045);}
+  voice.silence(7);
+  return Array.from((await context.startRendering()).getChannelData(0));
+});
+assert.ok(audioSamples.every(Number.isFinite));
+assert.ok(audioSamples.slice(0,8000).every(n=>n===0));
+assert.ok(Math.max(...audioSamples.slice(-1000).map(Math.abs))<.00001);
+const wav=Buffer.alloc(44+audioSamples.length*2);wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);wav.write('WAVE',8);wav.write('fmt ',12);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(22050,24);wav.writeUInt32LE(44100,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(audioSamples.length*2,40);audioSamples.forEach((n,i)=>wav.writeInt16LE(Math.round(Math.max(-1,Math.min(1,n))*32767),44+i*2));
+await writeFile(new URL('../.local/atlas/listening-orbit.wav',import.meta.url),wav);
+console.log('Passed opt-in listening, exploration without ink changes, keyboard probing, and rendered audio silence/volume bounds.');
 await page.locator('#example').click();
 await page.setViewportSize({width:390,height:844});
 await page.waitForTimeout(200);
@@ -127,6 +174,15 @@ assert.equal(await mobile.locator('#counts').textContent(),'1 mark · 0 memories
 await mobile.waitForTimeout(400);
 await mobile.locator('#release').tap();
 await mobile.waitForFunction(()=>document.getElementById('counts').textContent==='0 marks · 1 memory',{},{timeout:3000});
+assert.equal(await mobile.locator('#counts').textContent(),'0 marks · 1 memory');
+await mobile.waitForTimeout(400);
+await mobile.locator('#listen').tap();
+await mobile.waitForFunction(()=>document.getElementById('listen').getAttribute('aria-pressed')==='true');
+await mobile.locator('#canvas').scrollIntoViewIfNeeded();
+const probeBox=await mobile.locator('#canvas').boundingBox();
+await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:probeBox.x+probeBox.width*.4,y:probeBox.y+probeBox.height*.45}]});
+await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:probeBox.x+probeBox.width*.6,y:probeBox.y+probeBox.height*.45}]});
+await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
 assert.equal(await mobile.locator('#counts').textContent(),'0 marks · 1 memory');
 await touch.close();
 assert.deepEqual(errors,[]);

@@ -2,6 +2,7 @@ import { WIDTH, HEIGHT, PALETTES, LIMITS, random, resample, makeField, weave, di
 import { SCORES, specimen } from './specimens.js';
 import { pairedPrint } from './print.js';
 import { liftInk, strokeMemory } from './cut.js';
+import { Listener } from './sound.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d');
@@ -23,6 +24,23 @@ let history = [], field = makeField([]), tool = 'ink', palette = 'estuary';
 let reveal = false, compare = false, active = null, dirty = true, layerDirty = true;
 let saveTimer, toastTimer, eraseSnapshot = false, localAvailable = true;
 const STORAGE = 'lacuna.study.v1';
+const listener = new Listener();
+let listening = false, probe = null, probePointer = null;
+function stopListening() {
+  listening = false; probe = null; listener.stop();
+  $('listen').setAttribute('aria-pressed', false);
+  $('paper').classList.remove('listening');
+  $('unseen-description').textContent = 'Compare the same hand gestures on a canvas that never remembers.';
+  $('empty-note').querySelector('span').textContent = 'Begin anywhere.';
+  $('empty-note').querySelector('p').textContent = 'Draw a curve, then let it go.';
+  if (probePointer !== null && canvas.hasPointerCapture(probePointer)) canvas.releasePointerCapture(probePointer);
+  probePointer = null; dirty = true;
+}
+function listenAt(point) {
+  probe = point;
+  listener.sample(compare ? { x: 0, y: 0 } : field(point.x, point.y));
+  dirty = true;
+}
 
 function toast(message) {
   $('toast').textContent = message;
@@ -34,7 +52,7 @@ function snapshot() {
   history.push({ version: 1, strokes: [...doc.strokes], ghosts: [...doc.ghosts] });
   if (history.length > 24) history.shift();
 }
-function rebuild() { field = makeField(doc.ghosts); }
+function rebuild() { listener.silence(); field = makeField(doc.ghosts); }
 function persist() {
   try {
     localStorage.setItem(STORAGE, JSON.stringify(doc));
@@ -103,6 +121,11 @@ function render() {
   ctx.drawImage(inkLayer, 0, 0);
   if (reveal && !compare) drawGhosts(ctx);
   if (active?.tool === 'ink') drawStroke(ctx, weave(active, field, active.strength));
+  if (listening && probe) {
+    ctx.save(); ctx.strokeStyle = '#ae5639'; ctx.lineWidth = .9;
+    ctx.beginPath(); ctx.arc(probe.x, probe.y, 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(probe.x, probe.y, 2, 0, Math.PI * 2); ctx.fillStyle = '#ae5639'; ctx.fill(); ctx.restore();
+  }
   dirty = false;
 }
 function schedule() {
@@ -111,7 +134,9 @@ function schedule() {
 }
 
 function chooseTool(next) {
+  if (listening || $('listen').disabled) stopListening();
   finish(); tool = next;
+  canvas.setAttribute('aria-label', 'Drawing canvas. Drag to draw; press E to let go of a whole mark, or L to lift part of its ink.');
   $('ink').classList.toggle('selected', tool === 'ink');
   $('erase').classList.toggle('selected', tool === 'erase');
   $('ink').setAttribute('aria-pressed', tool === 'ink');
@@ -149,6 +174,10 @@ function liftAt(a, b = a) {
 }
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0 || active) return;
+  if (listening) {
+    probePointer = e.pointerId; canvas.setPointerCapture(e.pointerId);
+    canvas.focus({ preventScroll: true }); listenAt(position(e)); return;
+  }
   if (compare) { toast('Switch off “Without memory” to draw again.'); return; }
   // CSS touch-action keeps drawing gestures from panning the page.
   if (tool === 'ink' && doc.strokes.length >= LIMITS.strokes) { toast('This sheet is full. Release some ink, or start a new sheet.'); return; }
@@ -163,6 +192,7 @@ canvas.addEventListener('pointerdown', e => {
   $('empty-note').hidden = true; dirty = true;
 });
 canvas.addEventListener('pointermove', e => {
+  if (listening) { listenAt(position(e)); return; }
   const box = canvas.getBoundingClientRect();
   if (tool !== 'ink' && !compare) {
     $('cursor').style.display = 'block';
@@ -201,12 +231,33 @@ function finish() {
 canvas.addEventListener('pointerup', finish);
 canvas.addEventListener('pointercancel', finish);
 canvas.addEventListener('lostpointercapture', finish);
-canvas.addEventListener('pointerleave', () => $('cursor').style.display = 'none');
-window.addEventListener('blur', finish);
+canvas.addEventListener('pointerleave', () => { $('cursor').style.display = 'none'; if (listening) { listener.silence(); probe = null; dirty = true; } });
+canvas.addEventListener('pointerup', e => { if (e.pointerType === 'touch' && listening) listener.silence(); probePointer = null; });
+canvas.addEventListener('pointercancel', () => { listener.silence(); probePointer = null; });
+window.addEventListener('blur', () => { finish(); listener.silence(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) listener.silence(); });
 
 $('ink').onclick = () => chooseTool('ink');
 $('erase').onclick = () => chooseTool('erase');
 $('lift').onclick = () => chooseTool('lift');
+$('listen').onclick = async () => {
+  if (listening) { stopListening(); chooseTool(tool); return; }
+  finish(); $('listen').disabled = true;
+  try {
+    if (!await listener.start()) return;
+    listening = true;
+    for (const id of ['ink', 'erase', 'lift']) { $(id).classList.remove('selected'); $(id).setAttribute('aria-pressed', false); }
+    $('listen').setAttribute('aria-pressed', true);
+    $('paper').classList.add('listening'); $('cursor').style.display = 'none';
+    $('unseen-description').textContent = 'Move across the paper to hear its currents. Listening leaves no ink.';
+    canvas.setAttribute('aria-label', 'Listening canvas. Move across erased marks, or use arrow keys, to hear their currents without drawing.');
+    $('empty-note').querySelector('span').textContent = 'Nothing to hear yet.';
+    $('empty-note').querySelector('p').textContent = 'Choose Ink, make a mark, then let it go.';
+    $('tool-description').textContent = 'Explore with your hand. Choose an ink tool to draw again.';
+    toast('Move over a memory. Its direction becomes a tone. Blank paper is silent.');
+  } catch { stopListening(); toast('Sound could not start in this browser. You can still reveal the currents.'); }
+  finally { $('listen').disabled = false; }
+};
 $('width').oninput = () => $('width-value').textContent = $('width').value;
 $('strength').oninput = () => $('strength-value').textContent = `${$('strength').value}%`;
 document.querySelectorAll('[data-palette]').forEach(button => button.onclick = () => {
@@ -221,6 +272,7 @@ $('ghosts').onclick = () => {
 };
 $('compare').onclick = () => {
   finish(); compare = !compare; $('compare').setAttribute('aria-pressed', compare);
+  listener.silence();
   $('compare-note').hidden = !compare;
   $('view-label').textContent = compare ? 'WITHOUT MEMORY' : 'INK & MEMORY';
   $('paper').classList.toggle('comparing', compare);
@@ -314,7 +366,7 @@ $('file').onchange = async e => {
   } catch (error) { toast(error instanceof SyntaxError ? 'This file is not a readable Lacuna study.' : error.message); }
   e.target.value = '';
 };
-$('about').onclick = () => { finish(); $('explanation').showModal(); };
+$('about').onclick = () => { finish(); listener.silence(); $('explanation').showModal(); };
 $('close').onclick = $('begin').onclick = () => $('explanation').close();
 $('explanation').addEventListener('click', e => { if (e.target === $('explanation')) {
   const r = $('explanation').getBoundingClientRect();
@@ -330,8 +382,13 @@ document.addEventListener('keydown', e => {
   if (key === 'l') chooseTool('lift');
   if (key === 'g') $('ghosts').click();
   if (key === 'c') $('compare').click();
+  if (key === 's') $('listen').click();
+  if (listening && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+    e.preventDefault(); const p = probe || { x: WIDTH / 2, y: HEIGHT / 2 };
+    listenAt({ x: Math.max(0, Math.min(WIDTH, p.x + (e.key === 'ArrowLeft' ? -20 : e.key === 'ArrowRight' ? 20 : 0))), y: Math.max(0, Math.min(HEIGHT, p.y + (e.key === 'ArrowUp' ? -20 : e.key === 'ArrowDown' ? 20 : 0))) });
+  }
 });
-window.addEventListener('pagehide', () => { finish(); persist(); });
+window.addEventListener('pagehide', () => { finish(); persist(); stopListening(); });
 try {
   const saved = localStorage.getItem(STORAGE);
   if (saved) doc = validateDocument(JSON.parse(saved));

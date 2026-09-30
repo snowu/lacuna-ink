@@ -47,3 +47,11 @@ The control image needs a corresponding cut. Each removed interval is mapped by 
 **A borrowed opening** plays the new operation as a score. Six graphite gestures form a weave. A diagonal opening is lifted from it. Ten violet gestures cross the opening and bend under the influence of the removed graphite. The gap becomes useful material for a second drawing.
 
 Releasing a partly cut mark remembers only its surviving threads, rather than bringing its already-removed centerline back a second time. Very short fragments also retain both endpoints so they can exert a direction. These small details matter to the rule that only actual absence should act.
+
+## Hearing the missing ink
+
+I revisited the earlier decision to leave sound out. A background soundtrack would still distract from the paper. But the missing ink itself can be the score.
+
+Listening is a separate, opt-in way of exploring the surface. It leaves no marks. At the pointer, the same vector that bends the ink chooses a note from a small pentatonic scale; its magnitude controls a quiet breath of volume. Three sine partials and a low-pass filter give it a soft, slightly beating timbre. The sound fades when the hand stops moving, leaves the paper, or the tab loses focus. Empty paper remains silent, as does the counterfactual view with no memory.
+
+This also offers a way to find erased contours without exposing them visually. On a touch screen, a finger can listen instead of drawing; arrow keys move the listening point for keyboard exploration. Audio is synthesized locally only after selecting the listening control. No recorded sounds, microphone or network are involved.
