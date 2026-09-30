@@ -5,7 +5,8 @@ await import('./make-atlas.js');
 const browser = await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
 const page = await browser.newPage({ viewport:{width:1440,height:1150},acceptDownloads:true });
 const errors=[]; page.on('pageerror',e=>errors.push(e.message));
-await page.goto(process.argv[2] || 'http://127.0.0.1:8317/');
+const baseURL=process.argv[2] || 'http://127.0.0.1:8317/';
+await page.goto(baseURL);
 await page.locator('#example').click();
 await page.waitForTimeout(600);
 await page.screenshot({path:'/tmp/lacuna-desktop.png',fullPage:true});
@@ -157,7 +158,7 @@ console.log('Passed desktop drawing, erasure, memory comparison, undo, persisten
 const touch=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
 const mobile=await touch.newPage();
 mobile.on('pageerror',e=>errors.push(e.message));
-await mobile.goto('http://127.0.0.1:8317/');
+await mobile.goto(baseURL);
 await mobile.locator('#about').tap();
 await mobile.waitForTimeout(400);
 assert.equal(await mobile.locator('dialog').evaluate(d=>d.open),true);
