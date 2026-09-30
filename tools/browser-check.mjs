@@ -1,12 +1,20 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import {writeFile} from 'node:fs/promises';
+import {writeFile,readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 await import('./make-atlas.js');
 const browser = await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
 const page = await browser.newPage({ viewport:{width:1440,height:1150},acceptDownloads:true });
 const errors=[]; page.on('pageerror',e=>errors.push(e.message));
 const baseURL=process.argv[2] || 'http://127.0.0.1:8317/';
 await page.goto(baseURL);
+for(const file of ['index.html','style.css','app.js','field.js','cut.js','sound.js','specimens.js','print.js']){
+  const response=await page.request.get(new URL(file,baseURL).href);
+  assert.equal(response.status(),200,`${file} is served`);
+  const expected=await readFile(new URL(`../${file}`,import.meta.url));
+  const hash=data=>createHash('sha256').update(data).digest('hex');
+  assert.equal(hash(await response.body()),hash(expected),`${file} matches the current checkout`);
+}
 await page.locator('#example').click();
 await page.waitForTimeout(600);
 await page.screenshot({path:'/tmp/lacuna-desktop.png',fullPage:true});
