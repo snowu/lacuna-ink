@@ -41,6 +41,23 @@ function boundedSamples(points, spacing, maxSamples) {
   return resample(points, Math.max(spacing, length / (maxSamples - 1))).slice(0, maxSamples);
 }
 
+// Keep the shape, rather than every integration step. The error budget is
+// below a fifth of a canvas pixel; straight counterfactual threads need only
+// their endpoints. This keeps local storage and portable studies small.
+export function simplifyPath(points, tolerance = .18) {
+  if (points.length < 3) return points;
+  const a = points[0], b = points.at(-1), dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
+  let farthest = 0, split = 0;
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i];
+    const t = d2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / d2)) : 0;
+    const distance = Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+    if (distance > farthest) { farthest = distance; split = i; }
+  }
+  if (farthest <= tolerance) return [a, b];
+  return [...simplifyPath(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplifyPath(points.slice(split), tolerance)];
+}
+
 // Bilinear lookup of a cached field. Each ghost contributes its local tangent
 // plus a gentle pull toward the removed contour. Newer ghosts weigh more.
 export function makeField(ghosts, reach = 90) {
@@ -115,7 +132,7 @@ export function weave(stroke, field, strength = 1) {
           if (x < 0 || x > WIDTH || y < 0 || y > HEIGHT) break;
           points.push({ x, y });
         }
-        return { points, color, opacity };
+        return { points: simplifyPath(points).map(p => ({ x: Number(p.x.toFixed(2)), y: Number(p.y.toFixed(2)) })), color, opacity };
       };
       lines.push(integrate(true)); plain.push(integrate(false));
     }

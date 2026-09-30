@@ -1,4 +1,6 @@
 import { WIDTH, HEIGHT, PALETTES, LIMITS, random, resample, makeField, weave, distanceToPath, validateDocument } from './field.js';
+import { SCORES, specimen } from './specimens.js';
+import { pairedPrint } from './print.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d');
@@ -46,6 +48,8 @@ function changed({ currents = false } = {}) {
   layerDirty = dirty = true;
   $('undo').disabled = history.length === 0;
   $('release').disabled = doc.strokes.length === 0;
+  $('reverse').disabled = $('forget').disabled = doc.ghosts.length === 0;
+  $('memory-note').textContent = doc.ghosts.length ? 'Change a current. Only the next ink will know.' : 'The paper has no past yet.';
   $('counts').textContent = `${doc.strokes.length} ${doc.strokes.length === 1 ? 'mark' : 'marks'} · ${doc.ghosts.length} ${doc.ghosts.length === 1 ? 'memory' : 'memories'}`;
   $('empty-note').hidden = doc.strokes.length > 0 || doc.ghosts.length > 0 || !!active;
   $('save-status').textContent = localAvailable ? 'Saving…' : 'Save study to keep your work';
@@ -134,7 +138,7 @@ function eraseAt(a, b = a) {
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0 || active) return;
   if (compare) { toast('Switch off “Without memory” to draw again.'); return; }
-  e.preventDefault();
+  // CSS touch-action keeps drawing gestures from panning the page.
   if (tool === 'ink' && doc.strokes.length >= LIMITS.strokes) { toast('This sheet is full. Release some ink, or start a new sheet.'); return; }
   canvas.setPointerCapture(e.pointerId);
   canvas.focus({ preventScroll: true });
@@ -224,24 +228,36 @@ $('new').onclick = () => {
   finish(); snapshot(); doc = { version: 1, strokes: [], ghosts: [] };
   normalView(); changed({ currents: true }); toast('A sheet with no past. Undo brings the previous one back.');
 };
-function sampleStudy() {
-  const circle = Array.from({ length: 150 }, (_, i) => {
-    const a = i / 149 * Math.PI * 2;
-    return { x: 505 + Math.cos(a) * 170, y: 350 + Math.sin(a) * 173 };
-  });
-  const wave = Array.from({ length: 120 }, (_, i) => ({ x: 160 + i * 5.6, y: 395 + Math.sin(i / 119 * Math.PI * 2) * 85 }));
-  const ghosts = [{ points: circle }, { points: wave }], f = makeField(ghosts);
-  const strokes = [];
-  for (let i = 0; i < 7; i++) {
-    const points = Array.from({ length: 30 }, (_, j) => ({ x: 230 + j * 17, y: 175 + i * 49 + Math.sin(j * .13 + i * .2) * 12 }));
-    strokes.push(weave({ points, seed: 103 + i * 79, width: 3.5, palette: 'estuary' }, f, 1.15));
-  }
-  return { version: 1, strokes, ghosts };
+function openScore(id) {
+  finish(); snapshot(); doc = specimen(id); normalView();
+  const score = SCORES.find(s => s.id === id);
+  document.querySelector(`[data-palette="${score.palette}"]`).click();
+  changed({ currents: true }); toast(score.note);
 }
-$('example').onclick = () => {
-  finish(); snapshot(); doc = sampleStudy(); normalView();
-  changed({ currents: true }); toast('Two missing curves bend seven gestures. Compare with “Without memory”.');
+$('example').onclick = () => openScore('estuary');
+$('reverse').onclick = () => {
+  finish(); if (!doc.ghosts.length) return;
+  snapshot();
+  const last = doc.ghosts.at(-1);
+  doc.ghosts = [...doc.ghosts.slice(0, -1), { points: [...last.points].reverse() }];
+  changed({ currents: true });
+  if (!reveal) $('ghosts').click();
+  toast('The last current runs backwards. Your next ink will feel it.');
 };
+$('forget').onclick = () => {
+  finish(); if (!doc.ghosts.length) return;
+  snapshot(); doc.ghosts = doc.ghosts.slice(0, -1); changed({ currents: true });
+  toast('One current forgotten. The ink already here stays as it was.');
+};
+document.querySelectorAll('[data-score]').forEach(button => {
+  const thumbnail = button.querySelector('canvas'), tc = thumbnail.getContext('2d');
+  tc.scale(.5, .5); tc.drawImage(paperLayer, 0, 0);
+  specimen(button.dataset.score).strokes.forEach(s => drawStroke(tc, s));
+  button.onclick = () => {
+    openScore(button.dataset.score);
+    $('paper').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' });
+  };
+});
 function download(blob, name) {
   const url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = name; a.click();
@@ -261,6 +277,11 @@ $('export').onclick = () => {
 $('save-study').onclick = () => {
   finish(); download(new Blob([JSON.stringify(doc)], { type: 'application/json' }), `lacuna-study-${Date.now()}.json`);
   toast('Ink and memory, kept together.');
+};
+$('print-pair').onclick = () => {
+  finish();
+  download(new Blob([pairedPrint(doc)], { type: 'text/html' }), `lacuna-two-realities-${Date.now()}.html`);
+  toast('Two lives of the same gestures. Open the print anywhere, even offline.');
 };
 $('load-study').onclick = () => $('file').click();
 $('file').onchange = async e => {

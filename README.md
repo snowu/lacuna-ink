@@ -21,11 +21,16 @@ Open **http://localhost:8317**. Python 3 is the only server requirement. The bro
 - **Release all ink**: turn all visible gestures into memory at once.
 - **Reveal the currents** / `G`: see the erased contours and the field they created.
 - **Without memory** / `C`: compare your actual gestures with their unbent counterparts.
+- **Reverse last current**: let the newest absence run backwards. This changes your next ink, while existing marks stay fixed.
+- **Forget last current**: remove the newest memory. Undo restores it.
 - **Undo** / `Z`: restore both ink and memory from the previous action, including a new sheet or imported study. Up to 24 actions are retained for the current visit.
 - **Keep this image**: download the current reality as a 2000 × 1400 PNG, without the current overlay.
 - **Save study / Open study**: preserve and reopen both visible threads and erased gestures as JSON.
+- **Keep both realities**: download a standalone HTML print of remembered ink beside its counterfactual. It opens offline, includes a toggle for the missing gestures, and needs no scripts or external assets.
 
 Start with **Try an example**, then switch **Without memory** on and off. The example uses two absent curves and seven gestures; it goes through the same field and brush engine as your drawing. Undo returns to your previous sheet.
+
+The cabinet below the instrument offers three editable studies: an absent tide, a moon with opposing circular memories, and a crooked fault through straight gestures. These are small scores played through the ordinary brush engine. You can change their memories and keep drawing.
 
 Your latest sheet is saved in browser storage when available. The app reports when storage is full or unavailable; Save study still works. The brush is bounded to 550 seeds per gesture, sheets to 100 visible gestures and 40 memories. Imported studies have a 24 MB limit.
 
@@ -46,7 +51,10 @@ These precedents establish that flow-field art, erasure and visual memory are ex
 - `field.js`: deterministic sampling, cached vector field, paired brush trajectories, study validation.
 - `app.js`: pointer interaction, stroke erasure, reversible actions, persistence, export and import.
 - `style.css` / `index.html`: responsive paper, pigment controls and a short introduction.
-- `test/field.test.js`: causal checks for absence, direction, zero pull, reproducibility, geometry limits and study round trips.
+- `specimens.js`: three editable scores, plus a measurement of how their erased gestures changed their ink.
+- `print.js`: validated SVG and standalone paired HTML prints.
+- `tools/make-atlas.js`: an offline atlas of SVGs, paired prints and portable studies.
+- `test/`: causal checks for absence, direction, zero pull, reproducibility, geometry limits, compact ink, study round trips and offline prints.
 
 Each memory contributes the tangent of its nearest segment, plus a gentle attraction toward the contour, weighted by Gaussian distance. Older memories have weight `0.72 ^ age`. The resulting 84 × 60 field is sampled bilinearly. Fine threads integrate that force together with their initial velocity. The plain version integrates the same threads with a zero field.
 
@@ -54,6 +62,23 @@ Each memory contributes the tangent of its nearest segment, plus a gentle attrac
 npm test
 ```
 
-Browser verification covered drawing a loop, releasing it, drawing through its memory, direct erasure, undo, page reload, paired-view differences, PNG and JSON downloads, valid and invalid imports, the explanation dialog, and a 390 px mobile layout.
+Create a local, standalone atlas:
+
+```sh
+npm run atlas
+```
+
+Open `.local/atlas/index.html`. Its SVGs, JSON studies and paired prints work without the server or internet. Generated artifacts stay outside version control.
+
+Browser checks use Playwright as a development dependency, with system Chromium by default. Start the local server first, then run:
+
+```sh
+npm ci
+npm run test:browser
+```
+
+Set `CHROMIUM_EXECUTABLE` if Chromium lives elsewhere. Playwright is not used by the drawing app.
+
+Browser verification covers drawing a loop, releasing it, drawing through its memory, direct erasure, undo, page reload, paired-view differences, PNG and JSON downloads, valid and invalid imports, the explanation dialog, a 390 px mobile layout, editable specimens, reversal and forgetting, an offline paired print, and real touch input.
 
 Made for the pleasure of finding out.

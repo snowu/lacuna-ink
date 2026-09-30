@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 8317 --bind 127.0.0.1",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "atlas": "node tools/make-atlas.js",
+    "test:browser": "node tools/browser-check.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

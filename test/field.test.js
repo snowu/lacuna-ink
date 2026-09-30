@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeField, weave, validateDocument, resample, distanceToPath } from '../field.js';
+import { makeField, weave, validateDocument, resample, distanceToPath, simplifyPath } from '../field.js';
 
 const curve = [{ x: 300, y: 300 }, { x: 500, y: 300 }, { x: 600, y: 400 }];
 const stroke = { points: [{ x: 400, y: 250 }, { x: 400, y: 400 }], seed: 219, width: 6, palette: 'estuary' };
@@ -59,4 +59,13 @@ test('long zigzag gestures have a bounded thread budget', () => {
   assert.ok(ink.lines.length <= 1650);
   assert.ok(ink.lines.every(l => l.points.length <= 55));
   validateDocument({ version: 1, strokes: [ink], ghosts: [{ points }] });
+});
+
+test('compact ink preserves endpoints and stays inside its geometric error budget', () => {
+  const points = Array.from({ length: 55 }, (_, i) => ({ x: i * 2, y: 45 * Math.sin(i / 25) }));
+  const compact = simplifyPath(points);
+  assert.deepEqual(compact[0], points[0]);
+  assert.deepEqual(compact.at(-1), points.at(-1));
+  assert.ok(compact.length < points.length / 2);
+  assert.ok(points.every(p => distanceToPath(p.x, p.y, compact) <= .18));
 });
